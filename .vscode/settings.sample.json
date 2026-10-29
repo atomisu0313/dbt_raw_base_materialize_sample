@@ -1,0 +1,5 @@
+{
+    "python.defaultInterpreterPath": "/your-path/dbt_snapshot_2510/.venv/bin/python",
+    "dbt.pythonPath": "/your-path/dbt_snapshot_2510/.venv/bin/python",
+    "dbt.enabled": false
+}

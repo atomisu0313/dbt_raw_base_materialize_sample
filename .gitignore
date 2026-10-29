@@ -1,0 +1,25 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+dbt_internal_packages/
+
+# dbt target
+target/
+logs/
+.user.yml
+
+# result
+*.duckdb
+
+# vscode
+.vscode/settings.json
+
+# env
+.env

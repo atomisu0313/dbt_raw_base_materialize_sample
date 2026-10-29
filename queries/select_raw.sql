@@ -1,0 +1,1 @@
+select * from raw.raw_customer;

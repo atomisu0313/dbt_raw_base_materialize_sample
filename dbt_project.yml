@@ -1,0 +1,56 @@
+name: 'snapshot_2510'
+
+config-version: 2
+version: '0.1'
+
+profile: 'snapshot_2510'
+
+model-paths: ["models"]
+seed-paths: ["seeds"]
+test-paths: ["tests"]
+analysis-paths: ["analysis"]
+macro-paths: ["macros"]
+
+target-path: "target"
+clean-targets:
+    - "target"
+    - "dbt_modules"
+    - "logs"
+
+require-dbt-version: [">=1.0.0", "<2.0.0"]
+
+vars:
+  execution_date: "current_date()"
+  reset_date: 7
+
+seeds:
+  snapshot_2510:
+    seed_customers:
+      +docs:
+        node_color: '#cd7f32'
+      +column_types:
+        id: int
+        first_name: varchar
+        last_name: varchar
+        email: varchar
+        updated_at: timestamp
+
+models:
+  snapshot_2510:
+    +materialized: table
+    raw:
+      +materialized: table
+      +schema: raw
+    base:
+      +materialized: view
+      +schema: base
+      +docs:
+        node_color: 'gold'
+
+snapshots:
+  snapshot_2510:
+    raw:
+      schema: null
+      target_schema: raw
+      unique_key: id
+      strategy: check
