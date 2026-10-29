@@ -17,7 +17,7 @@ clean-targets:
     - "dbt_modules"
     - "logs"
 
-require-dbt-version: [">=1.0.0", "<2.0.0"]
+require-dbt-version: [">=2.0.0", "<3.0.0"]
 
 vars:
   execution_date: "current_date()"
@@ -50,7 +50,6 @@ models:
 snapshots:
   snapshot_2510:
     raw:
-      schema: null
-      target_schema: raw
-      unique_key: id
-      strategy: check
+      +target_schema: raw
+      +unique_key: id
+      +strategy: check
