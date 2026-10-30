@@ -34,6 +34,22 @@ seeds:
         last_name: varchar
         email: varchar
         updated_at: timestamp
+    seed_shops:
+      +column_types:
+        shop_id: int
+        shop_name: varchar
+        location: varchar
+        loaded_at: timestamp
+    seed_orders:
+      +column_types:
+        order_id: int
+        customer_id: int
+        shop_id: int
+        amount: int
+        status: varchar
+        ordered_at: timestamp
+        updated_at: timestamp
+        loaded_at: timestamp
 
 models:
   snapshot_2510:
@@ -42,7 +58,7 @@ models:
       +materialized: table
       +schema: raw
     base:
-      +materialized: view
+      +materialized: incremental
       +schema: base
       +docs:
         node_color: 'gold'

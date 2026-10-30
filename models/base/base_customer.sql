@@ -2,13 +2,10 @@ with customers as (
     select * from {{ ref('raw_customer_snapshot') }}
 ),
 
-
 {{
-    cleansing_master_diff_data_from_snapshot(
-    input = "customers",
-    output = "cleaned_latest",
-    loaded_at = "dbt_updated_at",
-    pk_col = ["id"]
+    cleansing_data(
+        input = "customers",
+        output = "cleaned_latest"
     )
 }}
 

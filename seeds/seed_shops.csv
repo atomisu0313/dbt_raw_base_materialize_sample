@@ -1,0 +1,8 @@
+shop_id,shop_name,location,loaded_at
+1,Tokyo Main,Tokyo,2025-10-01 09:00:00
+2,Osaka Branch,Osaka,2025-10-01 09:00:00
+1,Tokyo Main,Tokyo,2025-10-02 09:00:00
+2,Osaka Umeda,Osaka,2025-10-02 09:00:00
+1,Tokyo Ginza,Tokyo,2025-10-05 09:00:00
+2,Osaka Umeda,Osaka,2025-10-05 09:00:00
+3,Nagoya Branch,Nagoya,2025-10-05 09:00:00

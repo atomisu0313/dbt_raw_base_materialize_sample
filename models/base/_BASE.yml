@@ -2,25 +2,111 @@ version: 2
 
 models:
   - name: base_customer
-    description: This table has basic information about a customer, as well as some derived facts based on a customer's orders
+    description: 顧客マスタのBaseテーブル（SCD Type 2 snapshotから展開した日次断面データ）
+    config:
+      meta:
+        source_delivery_type: "master_diff"
+        expiration_day: 14
+        pk_col: ["id"]
+        updated_at: "updated_at"
+        loaded_at: "dbt_updated_at"
     columns:
       - name: id
-        description: This is a unique identifier for a customer
+        description: 顧客ID
         tests:
           - not_null
       - name: first_name
-        description: This is the first name of the customer
+        description: 名
         tests:
           - not_null
       - name: last_name
-        description: This is the last name of the customer
+        description: 姓
         tests:
           - not_null
       - name: email
-        description: This is the email of the customer
+        description: メールアドレス
         tests:
           - not_null
       - name: updated_at
-        description: This is the timestamp of the last update
+        description: 更新日時
+        tests:
+          - not_null
+      - name: partition_date
+        description: 断面日付
+        tests:
+          - not_null
+
+  - name: base_shops
+    description: 店舗マスタのBaseテーブル（全量連携データから歯抜け・未来日を補完した日次断面データ）
+    config:
+      meta:
+        source_delivery_type: "master_all"
+        expiration_day: 14
+        pk_col: ["shop_id"]
+        loaded_at: "loaded_at"
+    columns:
+      - name: shop_id
+        description: 店舗ID
+        tests:
+          - not_null
+      - name: shop_name
+        description: 店舗名
+        tests:
+          - not_null
+      - name: location
+        description: 所在地
+        tests:
+          - not_null
+      - name: loaded_at
+        description: 実配信の取込日時
+        tests:
+          - not_null
+      - name: partition_date
+        description: 断面日付
+        tests:
+          - not_null
+
+  - name: base_orders
+    description: 注文イベントのBaseテーブル（差分イベントから最新ステータスを抽出したPKごとの最新1行データ）
+    config:
+      meta:
+        source_delivery_type: "transaction_diff"
+        expiration_day: 7
+        pk_col: ["order_id"]
+        updated_at: "updated_at"
+        created_at: "ordered_at"
+        loaded_at: "loaded_at"
+    columns:
+      - name: order_id
+        description: 注文ID
+        tests:
+          - unique
+          - not_null
+      - name: customer_id
+        description: 顧客ID
+        tests:
+          - not_null
+      - name: shop_id
+        description: 店舗ID
+        tests:
+          - not_null
+      - name: amount
+        description: 注文金額
+        tests:
+          - not_null
+      - name: status
+        description: 最新ステータス
+        tests:
+          - not_null
+      - name: ordered_at
+        description: 注文日時
+        tests:
+          - not_null
+      - name: updated_at
+        description: 最新更新日時
+        tests:
+          - not_null
+      - name: loaded_at
+        description: 取込日時
         tests:
           - not_null
