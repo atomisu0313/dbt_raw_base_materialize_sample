@@ -1,0 +1,5 @@
+id,first_name,last_name,email,updated_at,partition_date
+1,Taro,Tanaka,taro@example.com,2026-01-01 09:00:00,2026-01-01
+1,Taro,Suzuki,taro_sz@example.com,2026-01-02 16:00:00,2026-01-02
+1,Taro,Suzuki,taro_sz@example.com,2026-01-02 16:00:00,2026-01-03
+

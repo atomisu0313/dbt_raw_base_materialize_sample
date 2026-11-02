@@ -115,3 +115,197 @@ models:
         description: 基準日（最新有効日）
         tests:
           - not_null
+
+unit_tests:
+  # ===========================================================================
+  # 1. base_customer (master_diff: 差分履歴からの日次断面展開)
+  # ===========================================================================
+  - name: test_base_customer_daily_expansion
+    description: "【単一レコード展開】1件の登録履歴から基準日までの各日次断面が欠落なく補完・展開されること"
+    model: base_customer
+    overrides:
+      vars:
+        execution_date: "2026-01-03"
+    given:
+      - input: ref('raw_customers')
+        format: csv
+        fixture: base_customer__daily_expansion_input
+    expect:
+      format: csv
+      fixture: base_customer__daily_expansion_expected
+
+  - name: test_base_customer_update_midstream
+    description: "【途中更新の反映】途中で顧客情報が更新された際、更新日前は旧値、更新日以降は新値へ正しく切り替わること"
+    model: base_customer
+    overrides:
+      vars:
+        execution_date: "2026-01-04"
+    given:
+      - input: ref('raw_customers')
+        format: csv
+        fixture: base_customer__update_midstream_input
+    expect:
+      format: csv
+      fixture: base_customer__update_midstream_expected
+
+  - name: test_base_customer_same_day_multiple_updates
+    description: "【同日複数回更新】同一日に複数回更新された場合、その日の最新の更新（updated_at最大）が日次断面に採用されること"
+    model: base_customer
+    overrides:
+      vars:
+        execution_date: "2026-01-03"
+    given:
+      - input: ref('raw_customers')
+        format: csv
+        fixture: base_customer__same_day_multiple_updates_input
+    expect:
+      format: csv
+      fixture: base_customer__same_day_multiple_updates_expected
+
+  - name: test_base_customer_multiple_customers
+    description: "【複数顧客の並行追跡】異なる更新履歴を持つ複数顧客が、それぞれ独立して日次断面に生成されること"
+    model: base_customer
+    overrides:
+      vars:
+        execution_date: "2026-01-03"
+    given:
+      - input: ref('raw_customers')
+        format: csv
+        fixture: base_customer__multiple_customers_input
+    expect:
+      format: csv
+      fixture: base_customer__multiple_customers_expected
+
+  - name: test_base_customer_future_records_filter
+    description: "【未来日レコード除外】基準日より未来のupdated_atを持つレコードが存在しても、基準日断面には混入せず除外されること"
+    model: base_customer
+    overrides:
+      vars:
+        execution_date: "2026-01-02"
+    given:
+      - input: ref('raw_customers')
+        format: csv
+        fixture: base_customer__future_records_filter_input
+    expect:
+      format: csv
+      fixture: base_customer__future_records_filter_expected
+
+  # ===========================================================================
+  # 2. base_shop (master_all: 全量連携からのASOF欠落日補完)
+  # ===========================================================================
+  - name: test_base_shop_asof_gap_filling
+    description: "【歯抜け配信日の補完】全量配信が未配信となった日（歯抜け日）に、直前の全量配信データがASOF JOINで正しく補完されること"
+    model: base_shop
+    overrides:
+      vars:
+        execution_date: "2026-01-03"
+    given:
+      - input: ref('raw_shops')
+        format: csv
+        fixture: base_shop__asof_gap_filling_input
+    expect:
+      format: csv
+      fixture: base_shop__asof_gap_filling_expected
+
+  - name: test_base_shop_master_updates
+    description: "【全量更新の追従】全量配信で店舗情報が変更された際、変更前と変更後で正しい断面データが生成されること"
+    model: base_shop
+    overrides:
+      vars:
+        execution_date: "2026-01-04"
+    given:
+      - input: ref('raw_shops')
+        format: csv
+        fixture: base_shop__master_updates_input
+    expect:
+      format: csv
+      fixture: base_shop__master_updates_expected
+
+  - name: test_base_shop_multiple_shops
+    description: "【複数店舗の展開】全量データに含まれる複数店舗が、補完日を含めて欠損なく各断面に展開されること"
+    model: base_shop
+    overrides:
+      vars:
+        execution_date: "2026-01-02"
+    given:
+      - input: ref('raw_shops')
+        format: csv
+        fixture: base_shop__multiple_shops_input
+    expect:
+      format: csv
+      fixture: base_shop__multiple_shops_expected
+
+  - name: test_base_shop_future_delivery_filter
+    description: "【未来日配信の除外】基準日より未来の全量配信データが存在しても、基準日までの断面データに混入しないこと"
+    model: base_shop
+    overrides:
+      vars:
+        execution_date: "2026-01-02"
+    given:
+      - input: ref('raw_shops')
+        format: csv
+        fixture: base_shop__future_delivery_filter_input
+    expect:
+      format: csv
+      fixture: base_shop__future_delivery_filter_expected
+
+  # ===========================================================================
+  # 3. base_order (transaction_diff: 注文イベント差分からの最新状態抽出)
+  # ===========================================================================
+  - name: test_base_order_latest_status_dedup
+    description: "【最新レコード抽出】同一注文ID・同一ステータスで複数イベントが届いた場合、最新のupdated_atの行のみが残ること"
+    model: base_order
+    overrides:
+      vars:
+        execution_date: "2026-01-02"
+    given:
+      - input: ref('raw_orders')
+        format: csv
+        fixture: base_order__latest_status_dedup_input
+    expect:
+      format: csv
+      fixture: base_order__latest_status_dedup_expected
+
+  - name: test_base_order_status_transition
+    description: "【複合PKの独立保持】同一注文でステータスが遷移（PENDING -> COMPLETED）した場合、複合キー[order_id, status]に基づき両方残ること"
+    model: base_order
+    overrides:
+      vars:
+        execution_date: "2026-01-03"
+    given:
+      - input: ref('raw_orders')
+        format: csv
+        fixture: base_order__status_transition_input
+    expect:
+      format: csv
+      fixture: base_order__status_transition_expected
+
+  - name: test_base_order_loaded_at_tie_breaker
+    description: "【loaded_atタイブレーク】updated_atが同一の重複イベントが発生した場合、loaded_atが新しいレコードが優先されること"
+    model: base_order
+    overrides:
+      vars:
+        execution_date: "2026-01-02"
+    given:
+      - input: ref('raw_orders')
+        format: csv
+        fixture: base_order__loaded_at_tie_breaker_input
+    expect:
+      format: csv
+      fixture: base_order__loaded_at_tie_breaker_expected
+
+  - name: test_base_order_multiple_orders
+    description: "【複数注文の集約】複数の異なる注文が混在する場合に、各注文が独立して正しく最新状態に集約されること"
+    model: base_order
+    overrides:
+      vars:
+        execution_date: "2026-01-02"
+    given:
+      - input: ref('raw_orders')
+        format: csv
+        fixture: base_order__multiple_orders_input
+    expect:
+      format: csv
+      fixture: base_order__multiple_orders_expected
+
+
