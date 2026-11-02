@@ -62,10 +62,3 @@ models:
       +schema: base
       +docs:
         node_color: 'gold'
-
-snapshots:
-  raw_base_mate:
-    raw:
-      +target_schema: raw
-      +unique_key: id
-      +strategy: check

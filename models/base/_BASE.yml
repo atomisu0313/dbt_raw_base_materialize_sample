@@ -4,6 +4,7 @@ models:
   - name: base_customer
     description: 顧客マスタのBaseテーブル（変更履歴ログから展開した日次断面データ）
     config:
+      cluster_by: ["partition_date", "id"] # duckdbでは無視？
       meta:
         source_delivery_type: "master_diff"
         expiration_day: 14
@@ -38,6 +39,7 @@ models:
   - name: base_shop
     description: 店舗マスタのBaseテーブル（全量連携データから歯抜け・未来日を補完した日次断面データ）
     config:
+      cluster_by: ["partition_date", "shop_id"] # duckdbでは無視？
       meta:
         source_delivery_type: "master_all"
         expiration_day: 14
@@ -68,6 +70,7 @@ models:
   - name: base_order
     description: 注文イベントのBaseテーブル（差分イベントから最新ステータスを抽出したPKごとの最新1行データ）
     config:
+      cluster_by: ["partition_date", "order_id"] # duckdbでは無視？、ordered_at::dateみたいなクラスタリングにするかは要検討
       meta:
         source_delivery_type: "transaction_diff"
         expiration_day: 7
