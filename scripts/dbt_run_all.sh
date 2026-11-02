@@ -13,5 +13,20 @@ fi
 
 shift
 
-echo "=== Build (execution_date: ${EXEC_DATE}) ==="
-uv run --env-file .env dbt build --vars "{\"execution_date\": \"${EXEC_DATE}\"}" "$@"
+# Microbatch 用に翌日 (batch end) を標準 date コマンドで計算 (macOS / Linux 両対応)
+if date -v+1d >/dev/null 2>&1; then
+  NEXT_DATE=$(date -j -v+1d -f "%Y-%m-%d" "${EXEC_DATE}" "+%Y-%m-%d")
+else
+  NEXT_DATE=$(date -d "${EXEC_DATE} + 1 day" "+%Y-%m-%d")
+fi
+
+echo "=== Build (execution_date: ${EXEC_DATE}, microbatch: ${EXEC_DATE} ~ ${NEXT_DATE}) ==="
+
+# 実行コマンドを自動トレース表示 (二重管理排除)
+set -x
+uv run --env-file .env dbt build \
+  --vars "{\"execution_date\": \"${EXEC_DATE}\"}" \
+  --event-time-start "${EXEC_DATE}" \
+  --event-time-end "${NEXT_DATE}" \
+  "$@"
+{ set +x; } 2>/dev/null

@@ -4,6 +4,7 @@ models:
   - name: base_customer
     description: 顧客マスタのBaseテーブル（変更履歴ログから展開した日次断面データ）
     config:
+      event_time: partition_date
       cluster_by: ["partition_date", "id"] # duckdbでは無視？
       meta:
         source_delivery_type: "master_diff"
@@ -39,6 +40,7 @@ models:
   - name: base_shop
     description: 店舗マスタのBaseテーブル（全量連携データから歯抜け・未来日を補完した日次断面データ）
     config:
+      event_time: partition_date
       cluster_by: ["partition_date", "shop_id"] # duckdbでは無視？
       meta:
         source_delivery_type: "master_all"
@@ -70,6 +72,7 @@ models:
   - name: base_order
     description: 注文イベントのBaseテーブル（差分イベントから最新ステータスを抽出したPKごとの最新1行データ）
     config:
+      event_time: partition_date #ここをコメントアウトすると、event_time以前の過去の取引までレコードに現れる。
       cluster_by: ["partition_date", "order_id"] # duckdbでは無視？、ordered_at::dateみたいなクラスタリングにするかは要検討
       meta:
         source_delivery_type: "transaction_diff"
@@ -112,7 +115,7 @@ models:
         tests:
           - not_null
       - name: partition_date
-        description: 基準日（最新有効日）
+        description: 基準日（最新有効日）、updated_atをもとに計算されるので、注文日とは別になる点に注意
         tests:
           - not_null
 
@@ -126,6 +129,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-03"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_customers')
         format: csv
@@ -140,6 +145,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-04"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_customers')
         format: csv
@@ -154,6 +161,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-03"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_customers')
         format: csv
@@ -168,6 +177,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-03"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_customers')
         format: csv
@@ -182,6 +193,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-02"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_customers')
         format: csv
@@ -199,6 +212,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-03"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_shops')
         format: csv
@@ -213,6 +228,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-04"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_shops')
         format: csv
@@ -227,6 +244,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-02"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_shops')
         format: csv
@@ -241,6 +260,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-02"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_shops')
         format: csv
@@ -258,6 +279,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-02"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_orders')
         format: csv
@@ -272,6 +295,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-03"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_orders')
         format: csv
@@ -286,6 +311,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-02"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_orders')
         format: csv
@@ -300,6 +327,8 @@ unit_tests:
     overrides:
       vars:
         execution_date: "2026-01-02"
+      macros:
+        is_incremental: false
     given:
       - input: ref('raw_orders')
         format: csv

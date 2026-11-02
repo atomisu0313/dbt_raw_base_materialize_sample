@@ -62,3 +62,8 @@ models:
       +schema: base
       +docs:
         node_color: 'gold'
+    marts:
+      +materialized: incremental
+      +schema: marts
+      +docs:
+        node_color: '#4CAF50'
