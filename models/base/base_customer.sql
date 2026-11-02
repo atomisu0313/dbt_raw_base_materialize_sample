@@ -1,5 +1,5 @@
 with customers as (
-    select * from {{ ref('raw_customer_snapshot') }}
+    select * from {{ ref('raw_customers') }}
 ),
 
 {{

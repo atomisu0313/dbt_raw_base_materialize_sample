@@ -1,10 +1,17 @@
 #!/bin/bash
 set -Ceu
 
-uv run --env-file .env dbt seed
+EXEC_DATE="${1:-}"
 
-uv run --env-file .env dbt run -s "raw_customer"
-uv run --env-file .env dbt snapshot -s "raw_customer_snapshot"
-uv run --env-file .env dbt run -s "base_customer"
+if [ -z "${EXEC_DATE}" ]; then
+  echo "Error: EXEC_DATE is required." >&2
+  echo "Usage: $0 <YYYY-MM-DD> [dbt-flags...]" >&2
+  echo "Example: $0 2026-10-07" >&2
+  echo "Example (full refresh): $0 2026-10-07 --full-refresh" >&2
+  exit 1
+fi
 
-#↑の一覧の処理はdbt debugで終了
+shift
+
+echo "=== Build (execution_date: ${EXEC_DATE}) ==="
+uv run --env-file .env dbt build --vars "{\"execution_date\": \"${EXEC_DATE}\"}" "$@"

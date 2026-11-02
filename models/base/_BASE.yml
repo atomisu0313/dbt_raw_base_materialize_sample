@@ -2,14 +2,13 @@ version: 2
 
 models:
   - name: base_customer
-    description: 顧客マスタのBaseテーブル（SCD Type 2 snapshotから展開した日次断面データ）
+    description: 顧客マスタのBaseテーブル（変更履歴ログから展開した日次断面データ）
     config:
       meta:
         source_delivery_type: "master_diff"
         expiration_day: 14
         pk_col: ["id"]
         updated_at: "updated_at"
-        loaded_at: "dbt_updated_at"
     columns:
       - name: id
         description: 顧客ID
@@ -36,7 +35,7 @@ models:
         tests:
           - not_null
 
-  - name: base_shops
+  - name: base_shop
     description: 店舗マスタのBaseテーブル（全量連携データから歯抜け・未来日を補完した日次断面データ）
     config:
       meta:
@@ -66,13 +65,13 @@ models:
         tests:
           - not_null
 
-  - name: base_orders
+  - name: base_order
     description: 注文イベントのBaseテーブル（差分イベントから最新ステータスを抽出したPKごとの最新1行データ）
     config:
       meta:
         source_delivery_type: "transaction_diff"
         expiration_day: 7
-        pk_col: ["order_id"]
+        pk_col: ["order_id","status"]
         updated_at: "updated_at"
         created_at: "ordered_at"
         loaded_at: "loaded_at"
@@ -80,7 +79,6 @@ models:
       - name: order_id
         description: 注文ID
         tests:
-          - unique
           - not_null
       - name: customer_id
         description: 顧客ID
@@ -108,5 +106,9 @@ models:
           - not_null
       - name: loaded_at
         description: 取込日時
+        tests:
+          - not_null
+      - name: partition_date
+        description: 基準日（最新有効日）
         tests:
           - not_null

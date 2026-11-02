@@ -1,8 +1,8 @@
-snapshot_2510:
+raw_base_mate:
 
   target: dev
   outputs:
     dev:
       type: duckdb
-      path: 'snapshot_2510.duckdb'
+      path: 'raw_base_mate.duckdb'
       threads: 24

@@ -23,8 +23,14 @@
 {%- if loaded_at %}{% do date_cols.append(loaded_at) %}{% endif -%}
 {%- set effective_at = "coalesce(" ~ (date_cols | join(", ")) ~ ")" if date_cols else "current_timestamp" -%}
 
-{# 基準日: execution_date があればその日、無ければ current_date() #}
-{%- set raw_execution_date = var("execution_date", "current_date()") -%}
+{# 基準日: execution_date は必須パラメータ（明示指定されない場合はエラー） #}
+{%- set raw_execution_date = var("execution_date", none) -%}
+{%- if not raw_execution_date -%}
+    {{ exceptions.raise_compiler_error(
+        "Variable 'execution_date' is required for model '" ~ model.name ~ "'. " ~
+        "Please provide it explicitly via CLI, e.g.: dbt run --vars '{\"execution_date\": \"YYYY-MM-DD\"}'"
+    ) }}
+{%- endif -%}
 {%- if raw_execution_date == "current_date()" or raw_execution_date == "current_timestamp()" -%}
     {%- set target_date_expr = raw_execution_date ~ "::date" -%}
 {%- else -%}
@@ -88,9 +94,11 @@ filtered_raw_table as (
 -- 4. 断面を作成したい日付リストを生成（基準日 target_date から過去へ）
 get_all_date_prep as (
     select
-        date_add(
-            {{ target_date_expr }},
-            (-i) * interval '1' day
+        cast (
+            date_add(
+                {{ target_date_expr }},
+                (-i) * interval '1' day
+            ) as date
         ) as partition_date
     {%- if is_incremental() %}
     from generate_series(0, {{ reset_days }} - 1) as t(i)

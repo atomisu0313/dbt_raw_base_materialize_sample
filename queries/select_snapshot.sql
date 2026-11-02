@@ -1,1 +1,0 @@
-select * from raw.raw_customer_snapshot;

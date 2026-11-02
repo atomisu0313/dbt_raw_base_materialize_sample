@@ -23,8 +23,14 @@
 {%- if loaded_at %}{% do date_cols.append(loaded_at) %}{% endif -%}
 {%- set effective_at = "coalesce(" ~ (date_cols | join(", ")) ~ ")" if date_cols else "current_timestamp" -%}
 
-{# 基準日: execution_date があればその日、無ければ current_date() #}
-{%- set raw_execution_date = var("execution_date", "current_date()") -%}
+{# 基準日: execution_date は必須パラメータ（明示指定されない場合はエラー） #}
+{%- set raw_execution_date = var("execution_date", none) -%}
+{%- if not raw_execution_date -%}
+    {{ exceptions.raise_compiler_error(
+        "Variable 'execution_date' is required for model '" ~ model.name ~ "'. " ~
+        "Please provide it explicitly via CLI, e.g.: dbt run --vars '{\"execution_date\": \"YYYY-MM-DD\"}'"
+    ) }}
+{%- endif -%}
 {%- if raw_execution_date == "current_date()" or raw_execution_date == "current_timestamp()" -%}
     {%- set target_date_expr = raw_execution_date ~ "::date" -%}
 {%- else -%}
@@ -64,7 +70,9 @@ ranked_records as (
 
 -- 最新の1件のみを抽出
 {{ output }} as (
-    select * exclude (_row_num)
+    select
+        * exclude (_row_num),
+        cast({{ effective_at }} as date) as partition_date
     from ranked_records
     where _row_num = 1
 ),

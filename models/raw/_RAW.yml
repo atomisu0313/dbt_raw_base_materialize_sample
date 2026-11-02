@@ -1,13 +1,12 @@
 version: 2
 
 models:
-  - name: raw_customer
+  - name: raw_customers
     description: 顧客マスタのRawデータ（差分連携想定）
     columns:
       - name: id
         description: 顧客ID
         tests:
-          - unique
           - not_null
       - name: first_name
         description: 名

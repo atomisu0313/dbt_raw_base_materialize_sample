@@ -1,9 +1,9 @@
-name: 'snapshot_2510'
+name: 'raw_base_mate'
 
 config-version: 2
 version: '0.1'
 
-profile: 'snapshot_2510'
+profile: 'raw_base_mate'
 
 model-paths: ["models"]
 seed-paths: ["seeds"]
@@ -20,11 +20,11 @@ clean-targets:
 require-dbt-version: [">=2.0.0", "<3.0.0"]
 
 vars:
-  execution_date: "current_date()"
+  #execution_date: "current_date()"
   reset_date: 7
 
 seeds:
-  snapshot_2510:
+  raw_base_mate:
     seed_customers:
       +docs:
         node_color: '#cd7f32'
@@ -52,7 +52,7 @@ seeds:
         loaded_at: timestamp
 
 models:
-  snapshot_2510:
+  raw_base_mate:
     +materialized: table
     raw:
       +materialized: table
@@ -64,7 +64,7 @@ models:
         node_color: 'gold'
 
 snapshots:
-  snapshot_2510:
+  raw_base_mate:
     raw:
       +target_schema: raw
       +unique_key: id

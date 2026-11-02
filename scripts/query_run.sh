@@ -7,4 +7,4 @@ if [ -z $1 ]; then
     exit 1
 fi
 
-uv run --env-file .env duckcli snapshot_2510.duckdb -e "$(cat $1)"
+uv run --env-file .env duckcli raw_base_mate.duckdb -e "$(cat $1)"

@@ -1,5 +1,5 @@
 {
-    "python.defaultInterpreterPath": "/your-path/dbt_snapshot_2510/.venv/bin/python",
-    "dbt.pythonPath": "/your-path/dbt_snapshot_2510/.venv/bin/python",
+    "python.defaultInterpreterPath": "/your-path/dbt_raw_base_materialize_sample/.venv/bin/python",
+    "dbt.pythonPath": "/your-path/dbt_raw_base_materialize_sample/.venv/bin/python",
     "dbt.enabled": false
 }

@@ -1,9 +1,0 @@
-version: 2
-
-snapshots:
-  - name: raw_customer_snapshot
-    config:
-      target_schema: raw
-      unique_key: id
-      strategy: timestamp
-      updated_at: updated_at

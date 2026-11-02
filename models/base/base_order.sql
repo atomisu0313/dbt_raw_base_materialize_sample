@@ -18,7 +18,8 @@ final as (
         status,
         ordered_at,
         updated_at,
-        loaded_at
+        loaded_at,
+        partition_date
     from cleaned_latest
 )
 
