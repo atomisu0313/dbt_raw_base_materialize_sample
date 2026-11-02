@@ -58,13 +58,12 @@ ranked_records as (
                 {%- endif %}
         ) as _row_num
     from {{ input }}
+    where cast({{ effective_at }} as date) <= {{ target_date_expr }}
     {%- if is_incremental() %}
-    where
-        cast({{ effective_at }} as date) > date_add(
+      and cast({{ effective_at }} as date) > date_add(
             {{ target_date_expr }},
             -{{ reset_days }} * interval '1' day
         )
-        and cast({{ effective_at }} as date) <= {{ target_date_expr }}
     {%- endif %}
 ),
 
