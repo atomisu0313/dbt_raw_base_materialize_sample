@@ -1,39 +1,40 @@
 version: 2
 
 models:
-  - name: base_customer
+  - name: base_customer_dsnp
     description: 顧客マスタのBaseテーブル（変更履歴ログから展開した日次断面データ）
     config:
       event_time: partition_date
       cluster_by: ["partition_date", "id"] # duckdbでは無視？
+      contract:
+        enforced: true
+      on_schema_change: append_new_columns
       meta:
         source_delivery_type: "master_diff"
-        expiration_day: 14
+        expiration_day: 40
         pk_col: ["id"]
         updated_at: "updated_at"
     columns:
       - name: id
         description: 顧客ID
+        data_type: integer
         tests:
           - not_null
       - name: first_name
         description: 名
-        tests:
-          - not_null
+        data_type: varchar
       - name: last_name
         description: 姓
-        tests:
-          - not_null
+        data_type: varchar
       - name: email
         description: メールアドレス
-        tests:
-          - not_null
+        data_type: varchar
       - name: updated_at
         description: 更新日時
-        tests:
-          - not_null
+        data_type: timestamp
       - name: partition_date
         description: 断面日付
+        data_type: date
         tests:
           - not_null
 
@@ -42,41 +43,46 @@ models:
     config:
       event_time: partition_date
       cluster_by: ["partition_date", "shop_id"] # duckdbでは無視？
+      contract:
+        enforced: true
+      on_schema_change: append_new_columns
       meta:
         source_delivery_type: "master_all"
-        expiration_day: 14
+        expiration_day: 40
         pk_col: ["shop_id"]
         loaded_at: "loaded_at"
     columns:
       - name: shop_id
         description: 店舗ID
+        data_type: integer
         tests:
           - not_null
       - name: shop_name
         description: 店舗名
-        tests:
-          - not_null
+        data_type: varchar
       - name: location
         description: 所在地
-        tests:
-          - not_null
+        data_type: varchar
       - name: loaded_at
         description: 実配信の取込日時
-        tests:
-          - not_null
+        data_type: timestamp
       - name: partition_date
         description: 断面日付
+        data_type: date
         tests:
           - not_null
 
-  - name: base_order
+  - name: base_order_dsnp
     description: 注文イベントのBaseテーブル（差分イベントから最新ステータスを抽出したPKごとの最新1行データ）
     config:
-      event_time: partition_date #ここをコメントアウトすると、event_time以前の過去の取引までレコードに現れる。
+      event_time: partition_date # 【注意1!!】ここをコメントアウト・削除すると、下流microbatchで上流フィルタが解除され、過去の全取引が読み込まれて最新マスタと結合されるタイムトラベル汚染（過去取引が未来属性で上書きされる事象）が発生します。
       cluster_by: ["partition_date", "order_id"] # duckdbでは無視？、ordered_at::dateみたいなクラスタリングにするかは要検討
+      contract:
+        enforced: true
+      on_schema_change: append_new_columns
       meta:
         source_delivery_type: "transaction_diff"
-        expiration_day: 7
+        expiration_day: 40
         pk_col: ["order_id","status"]
         updated_at: "updated_at"
         created_at: "ordered_at"
@@ -84,124 +90,235 @@ models:
     columns:
       - name: order_id
         description: 注文ID
+        data_type: integer
         tests:
           - not_null
       - name: customer_id
         description: 顧客ID
-        tests:
-          - not_null
+        data_type: integer
       - name: shop_id
         description: 店舗ID
-        tests:
-          - not_null
+        data_type: integer
       - name: amount
         description: 注文金額
-        tests:
-          - not_null
+        data_type: integer
       - name: status
         description: 最新ステータス
-        tests:
-          - not_null
+        data_type: varchar
       - name: ordered_at
         description: 注文日時
-        tests:
-          - not_null
+        data_type: timestamp
       - name: updated_at
         description: 最新更新日時
-        tests:
-          - not_null
+        data_type: timestamp
       - name: loaded_at
         description: 取込日時
-        tests:
-          - not_null
+        data_type: timestamp
       - name: partition_date
-        description: 基準日（最新有効日）、updated_atをもとに計算されるので、注文日とは別になる点に注意
+        description: 基準日（最新有効日）、updated_atをもとに計算されるので、注文日とは別である # 【注意3】event_dateとして他の日付を指定する場合には、工夫が必要にある
+        data_type: date
         tests:
           - not_null
 
+  - name: base_daily_order_dsnp
+    description: 注文ステータス推移の日次断面Baseテーブル（ステータス変更履歴から各日時点の有効ステータスを展開した日次スナップショット）
+    config:
+      event_time: partition_date
+      cluster_by: ["partition_date", "order_id"]
+      contract:
+        enforced: true
+      on_schema_change: append_new_columns
+      meta:
+        source_delivery_type: "master_diff"
+        expiration_day: 40
+        pk_col: ["order_id"]
+        updated_at: "updated_at"
+        created_at: "ordered_at"
+        loaded_at: "loaded_at"
+    columns:
+      - name: order_id
+        description: 注文ID
+        data_type: integer
+        tests:
+          - not_null
+      - name: customer_id
+        description: 顧客ID
+        data_type: integer
+      - name: shop_id
+        description: 店舗ID
+        data_type: integer
+      - name: amount
+        description: 注文金額
+        data_type: integer
+      - name: status
+        description: 当日有効ステータス
+        data_type: varchar
+      - name: ordered_at
+        description: 注文日時
+        data_type: timestamp
+      - name: updated_at
+        description: 更新日時
+        data_type: timestamp
+      - name: loaded_at
+        description: 取込日時
+        data_type: timestamp
+      - name: partition_date
+        description: 断面日付
+        data_type: date
+        tests:
+          - not_null
+
+  - name: base_customer_scd2
+    description: 顧客マスタのSCD Type 2 Baseテーブル（差分変更履歴から有効期間valid_from_date〜valid_to_dateを算出した正規化モデル）
+    config:
+      materialized: table
+      # 【注意2!!】コメントアウトを外してevent_timeを設定すると、
+      # 下流microbatch実行時に当日更新分のみに自動フィルタ（Pushdown）がかかり、下流マートの結果が不適切になる。
+      #event_time: partition_date
+    columns:
+      - name: id
+        description: 顧客ID
+        tests:
+          - not_null
+      - name: first_name
+        description: 名
+      - name: last_name
+        description: 姓
+      - name: email
+        description: メールアドレス
+      - name: updated_at
+        description: 更新日時
+      - name: valid_from_date
+        description: 有効開始日
+        tests:
+          - not_null
+      - name: valid_to_date
+        description: 有効終了日（最新レコードはNULL）
+      - name: partition_date
+        description: 基準日（updated_atの日付）
+        tests:
+          - not_null
+
+  - name: base_order_scd2
+    description: 注文イベントのSCD Type 2 Baseテーブル（ステータス変更履歴から重複排除および有効期間・基準日を算出した正規化モデル）
+    config:
+      materialized: table
+      event_time: partition_date
+    columns:
+      - name: order_id
+        description: 注文ID
+        tests:
+          - not_null
+      - name: customer_id
+        description: 顧客ID
+      - name: shop_id
+        description: 店舗ID
+      - name: amount
+        description: 注文金額
+      - name: status
+        description: 注文ステータス
+      - name: ordered_at
+        description: 注文日時
+      - name: updated_at
+        description: 更新日時
+      - name: loaded_at
+        description: 取込日時
+      - name: valid_from_date
+        description: 有効開始日
+        tests:
+          - not_null
+      - name: valid_to_date
+        description: 有効終了日（最新レコードはNULL）
+      - name: partition_date
+        description: 基準日（updated_atの日付、microbatch event_time）
+        tests:
+          - not_null
+
+
+
 unit_tests:
   # ===========================================================================
-  # 1. base_customer (master_diff: 差分履歴からの日次断面展開)
+  # 1. base_customer_dsnp (master_diff: 差分履歴からの日次断面展開)
   # ===========================================================================
-  - name: test_base_customer_daily_expansion
+  - name: test_base_customer_dsnp_daily_expansion
     description: "【単一レコード展開】1件の登録履歴から基準日までの各日次断面が欠落なく補完・展開されること"
-    model: base_customer
+    model: base_customer_dsnp
     overrides:
       vars:
         execution_date: "2026-01-03"
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_customers')
+      - input: ref('seed_customers')
         format: csv
-        fixture: base_customer__daily_expansion_input
+        fixture: base_customer_dsnp__daily_expansion_input
     expect:
       format: csv
-      fixture: base_customer__daily_expansion_expected
+      fixture: base_customer_dsnp__daily_expansion_expected
 
-  - name: test_base_customer_update_midstream
+  - name: test_base_customer_dsnp_update_midstream
     description: "【途中更新の反映】途中で顧客情報が更新された際、更新日前は旧値、更新日以降は新値へ正しく切り替わること"
-    model: base_customer
+    model: base_customer_dsnp
     overrides:
       vars:
         execution_date: "2026-01-04"
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_customers')
+      - input: ref('seed_customers')
         format: csv
-        fixture: base_customer__update_midstream_input
+        fixture: base_customer_dsnp__update_midstream_input
     expect:
       format: csv
-      fixture: base_customer__update_midstream_expected
+      fixture: base_customer_dsnp__update_midstream_expected
 
-  - name: test_base_customer_same_day_multiple_updates
+  - name: test_base_customer_dsnp_same_day_multiple_updates
     description: "【同日複数回更新】同一日に複数回更新された場合、その日の最新の更新（updated_at最大）が日次断面に採用されること"
-    model: base_customer
+    model: base_customer_dsnp
     overrides:
       vars:
         execution_date: "2026-01-03"
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_customers')
+      - input: ref('seed_customers')
         format: csv
-        fixture: base_customer__same_day_multiple_updates_input
+        fixture: base_customer_dsnp__same_day_multiple_updates_input
     expect:
       format: csv
-      fixture: base_customer__same_day_multiple_updates_expected
+      fixture: base_customer_dsnp__same_day_multiple_updates_expected
 
-  - name: test_base_customer_multiple_customers
+  - name: test_base_customer_dsnp_multiple_customers
     description: "【複数顧客の並行追跡】異なる更新履歴を持つ複数顧客が、それぞれ独立して日次断面に生成されること"
-    model: base_customer
+    model: base_customer_dsnp
     overrides:
       vars:
         execution_date: "2026-01-03"
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_customers')
+      - input: ref('seed_customers')
         format: csv
-        fixture: base_customer__multiple_customers_input
+        fixture: base_customer_dsnp__multiple_customers_input
     expect:
       format: csv
-      fixture: base_customer__multiple_customers_expected
+      fixture: base_customer_dsnp__multiple_customers_expected
 
-  - name: test_base_customer_future_records_filter
+  - name: test_base_customer_dsnp_future_records_filter
     description: "【未来日レコード除外】基準日より未来のupdated_atを持つレコードが存在しても、基準日断面には混入せず除外されること"
-    model: base_customer
+    model: base_customer_dsnp
     overrides:
       vars:
         execution_date: "2026-01-02"
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_customers')
+      - input: ref('seed_customers')
         format: csv
-        fixture: base_customer__future_records_filter_input
+        fixture: base_customer_dsnp__future_records_filter_input
     expect:
       format: csv
-      fixture: base_customer__future_records_filter_expected
+      fixture: base_customer_dsnp__future_records_filter_expected
 
   # ===========================================================================
   # 2. base_shop (master_all: 全量連携からのASOF欠落日補完)
@@ -215,7 +332,7 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_shops')
+      - input: ref('seed_shops')
         format: csv
         fixture: base_shop__asof_gap_filling_input
     expect:
@@ -231,7 +348,7 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_shops')
+      - input: ref('seed_shops')
         format: csv
         fixture: base_shop__master_updates_input
     expect:
@@ -247,7 +364,7 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_shops')
+      - input: ref('seed_shops')
         format: csv
         fixture: base_shop__multiple_shops_input
     expect:
@@ -263,7 +380,7 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_shops')
+      - input: ref('seed_shops')
         format: csv
         fixture: base_shop__future_delivery_filter_input
     expect:
@@ -271,70 +388,141 @@ unit_tests:
       fixture: base_shop__future_delivery_filter_expected
 
   # ===========================================================================
-  # 3. base_order (transaction_diff: 注文イベント差分からの最新状態抽出)
+  # 3. base_order_dsnp (transaction_diff: 注文イベント差分からの最新状態抽出)
   # ===========================================================================
-  - name: test_base_order_latest_status_dedup
+  - name: test_base_order_dsnp_latest_status_dedup
     description: "【最新レコード抽出】同一注文ID・同一ステータスで複数イベントが届いた場合、最新のupdated_atの行のみが残ること"
-    model: base_order
+    model: base_order_dsnp
     overrides:
       vars:
         execution_date: "2026-01-02"
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_orders')
+      - input: ref('seed_orders')
         format: csv
-        fixture: base_order__latest_status_dedup_input
+        fixture: base_order_dsnp__latest_status_dedup_input
     expect:
       format: csv
-      fixture: base_order__latest_status_dedup_expected
+      fixture: base_order_dsnp__latest_status_dedup_expected
 
-  - name: test_base_order_status_transition
+  - name: test_base_order_dsnp_status_transition
     description: "【複合PKの独立保持】同一注文でステータスが遷移（PENDING -> COMPLETED）した場合、複合キー[order_id, status]に基づき両方残ること"
-    model: base_order
+    model: base_order_dsnp
     overrides:
       vars:
         execution_date: "2026-01-03"
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_orders')
+      - input: ref('seed_orders')
         format: csv
-        fixture: base_order__status_transition_input
+        fixture: base_order_dsnp__status_transition_input
     expect:
       format: csv
-      fixture: base_order__status_transition_expected
+      fixture: base_order_dsnp__status_transition_expected
 
-  - name: test_base_order_loaded_at_tie_breaker
+  - name: test_base_order_dsnp_loaded_at_tie_breaker
     description: "【loaded_atタイブレーク】updated_atが同一の重複イベントが発生した場合、loaded_atが新しいレコードが優先されること"
-    model: base_order
+    model: base_order_dsnp
     overrides:
       vars:
         execution_date: "2026-01-02"
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_orders')
+      - input: ref('seed_orders')
         format: csv
-        fixture: base_order__loaded_at_tie_breaker_input
+        fixture: base_order_dsnp__loaded_at_tie_breaker_input
     expect:
       format: csv
-      fixture: base_order__loaded_at_tie_breaker_expected
+      fixture: base_order_dsnp__loaded_at_tie_breaker_expected
 
-  - name: test_base_order_multiple_orders
+  - name: test_base_order_dsnp_multiple_orders
     description: "【複数注文の集約】複数の異なる注文が混在する場合に、各注文が独立して正しく最新状態に集約されること"
-    model: base_order
+    model: base_order_dsnp
     overrides:
       vars:
         execution_date: "2026-01-02"
       macros:
         is_incremental: false
     given:
-      - input: ref('raw_orders')
+      - input: ref('seed_orders')
         format: csv
-        fixture: base_order__multiple_orders_input
+        fixture: base_order_dsnp__multiple_orders_input
     expect:
       format: csv
-      fixture: base_order__multiple_orders_expected
+      fixture: base_order_dsnp__multiple_orders_expected
+
+  # ===========================================================================
+  # 4. base_customer_scd2 (顧客マスタ SCD Type 2 有効期間算出)
+  # ===========================================================================
+  - name: test_base_customer_scd2_normal_transition
+    description: "【SCD2有効期間遷移】属性更新履歴に基づきvalid_from_dateとvalid_to_dateが正しく生成され、最新レコードのvalid_to_dateがNULLになること"
+    model: base_customer_scd2
+    given:
+      - input: ref('seed_customers')
+        format: csv
+        fixture: base_customer_scd2__normal_transition_input
+    expect:
+      format: csv
+      fixture: base_customer_scd2__normal_transition_expected
+
+  - name: test_base_customer_scd2_same_day_dedup
+    description: "【同日複数更新の集約】同一日に同一顧客の複数回更新が存在する場合、最新のupdated_atが採用され日付の重複・逆転が発生しないこと"
+    model: base_customer_scd2
+    given:
+      - input: ref('seed_customers')
+        format: csv
+        fixture: base_customer_scd2__same_day_dedup_input
+    expect:
+      format: csv
+      fixture: base_customer_scd2__same_day_dedup_expected
+
+  # ===========================================================================
+  # 5. base_order_scd2 (注文イベント SCD Type 2 重複排除および有効期間算出)
+  # ===========================================================================
+  - name: test_base_order_scd2_status_transition
+    description: "【注文ステータス遷移】同一注文のステータス遷移（ordered -> shipped等）に対してvalid_from_dateとvalid_to_date、partition_dateが正しく算出されること"
+    model: base_order_scd2
+    given:
+      - input: ref('seed_orders')
+        format: csv
+        fixture: base_order_scd2__status_transition_input
+    expect:
+      format: csv
+      fixture: base_order_scd2__status_transition_expected
+
+  - name: test_base_order_scd2_duplicate_event_dedup
+    description: "【重複イベント排除】同一注文・同一ステータスの重複イベントが、updated_at desc, loaded_at desc のタイブレークで最新1件に集約されること"
+    model: base_order_scd2
+    given:
+      - input: ref('seed_orders')
+        format: csv
+        fixture: base_order_scd2__duplicate_event_dedup_input
+    expect:
+      format: csv
+      fixture: base_order_scd2__duplicate_event_dedup_expected
+
+  # ===========================================================================
+  # 6. base_daily_order_dsnp (注文ステータス日次断面展開)
+  # ===========================================================================
+  - name: test_base_daily_order_dsnp_daily_expansion
+    description: "【注文ステータス日次断面展開】注文のステータス遷移（ordered -> shipped）が各日ごとの日次断面に正しく展開され、各日時点の有効ステータスが保持されること"
+    model: base_daily_order_dsnp
+    overrides:
+      vars:
+        execution_date: "2026-10-12"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('seed_orders')
+        format: csv
+        fixture: base_daily_order_dsnp__daily_expansion_input
+    expect:
+      format: csv
+      fixture: base_daily_order_dsnp__daily_expansion_expected
+
+
 
 

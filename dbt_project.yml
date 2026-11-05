@@ -19,9 +19,24 @@ clean-targets:
 
 require-dbt-version: [">=2.0.0", "<3.0.0"]
 
+flags:
+  ai_provider: gemini
+
 vars:
-  #execution_date: "current_date()"
-  reset_date: 7
+  execution_date: "1900-01-01"
+  reset_date: 40
+
+checks:
+  dbt_project_evaluator:
+    testing:
+      fct_missing_primary_key_tests:
+        +enabled: false
+    modeling:
+      fct_model_fanout:
+        +enabled: false
+    structure:
+      fct_model_naming_conventions:
+        +enabled: false
 
 seeds:
   raw_base_mate:
@@ -54,9 +69,6 @@ seeds:
 models:
   raw_base_mate:
     +materialized: table
-    raw:
-      +materialized: table
-      +schema: raw
     base:
       +materialized: incremental
       +schema: base

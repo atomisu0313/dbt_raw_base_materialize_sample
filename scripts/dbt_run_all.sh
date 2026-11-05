@@ -22,7 +22,6 @@ fi
 
 echo "=== Build (execution_date: ${EXEC_DATE}, microbatch: ${EXEC_DATE} ~ ${NEXT_DATE}) ==="
 
-# 実行コマンドを自動トレース表示 (二重管理排除)
 set -x
 uv run --env-file .env dbt build \
   --vars "{\"execution_date\": \"${EXEC_DATE}\"}" \

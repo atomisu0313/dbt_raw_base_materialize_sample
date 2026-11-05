@@ -1,0 +1,4 @@
+id,first_name,last_name,email,updated_at,valid_from_date,valid_to_date,partition_date
+1,Michaela,APQ.,test1@cmail.com,2026-10-04 15:00:00,2026-10-04,2026-10-10,2026-10-04
+1,Michaela_New,APQ.,test1_new@cmail.com,2026-10-10 15:00:00,2026-10-10,null,2026-10-10
+2,Shawn,AM.,test2@cmail.com,2026-10-01 15:00:00,2026-10-01,null,2026-10-01

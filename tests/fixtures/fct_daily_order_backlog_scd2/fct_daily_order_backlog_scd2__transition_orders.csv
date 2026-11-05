@@ -1,0 +1,4 @@
+order_id,customer_id,shop_id,amount,status,ordered_at,updated_at,valid_from_date,valid_to_date
+101,1,1,1500,ordered,2026-10-10 10:00:00,2026-10-10 10:00:00,2026-10-10,2026-10-12
+102,2,2,3200,ordered,2026-10-11 11:00:00,2026-10-11 11:00:00,2026-10-11,
+

@@ -1,0 +1,4 @@
+id,first_name,last_name,email,updated_at,valid_from_date,valid_to_date,partition_date
+1,Taro,Tanaka,taro@example.com,2026-01-01 09:00:00,2026-01-01,2026-01-02,2026-01-01
+1,Taro,Suzuki,taro_sz@example.com,2026-01-02 16:00:00,2026-01-02,2026-01-05,2026-01-02
+1,Taro,Watanabe,taro_w@example.com,2026-01-05 12:00:00,2026-01-05,null,2026-01-05

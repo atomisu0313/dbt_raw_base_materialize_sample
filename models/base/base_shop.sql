@@ -1,5 +1,5 @@
 with source_data as (
-    select * from {{ ref('raw_shops') }}
+    select * from {{ ref('seed_shops') }}
 ),
 
 {{
@@ -11,11 +11,7 @@ with source_data as (
 
 final as (
     select
-        shop_id,
-        shop_name,
-        location,
-        loaded_at,
-        partition_date
+        *
     from cleaned_latest
 )
 

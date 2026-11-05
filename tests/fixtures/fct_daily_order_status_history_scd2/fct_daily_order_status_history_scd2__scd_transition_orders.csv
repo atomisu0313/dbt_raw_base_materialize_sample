@@ -1,0 +1,3 @@
+order_id,customer_id,shop_id,amount,status,ordered_at,updated_at,loaded_at,valid_from_date,valid_to_date,partition_date
+101,1,10,1500,ordered,2026-10-04 10:00:00,2026-10-04 10:00:00,2026-10-04 10:05:00,2026-10-04,null,2026-10-04
+102,1,10,2000,ordered,2026-10-10 10:00:00,2026-10-10 10:00:00,2026-10-10 10:05:00,2026-10-10,null,2026-10-10

@@ -1,0 +1,3 @@
+id,first_name,last_name,email,updated_at,valid_from_date,valid_to_date
+1,Taro,Yamada,taro@example.com,2026-10-01 09:00:00,2026-10-01,null
+2,Hanako,Suzuki,hanako@example.com,2026-10-01 09:00:00,2026-10-01,null

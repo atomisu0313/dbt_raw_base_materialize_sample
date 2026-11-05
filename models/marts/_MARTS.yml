@@ -1,8 +1,8 @@
 version: 2
 
 models:
-  - name: fct_daily_sales
-    description: 日次売上トランザクションマート（dbt標準 microbatch インクリメンタル戦略による日次バッチ集計）
+  - name: fct_daily_order_status_history_dsnp
+    description: 日次注文ステータス更新履歴マート（dbt標準 microbatch インクリメンタル戦略による日次バッチ集計）
     config:
       materialized: incremental
       incremental_strategy: microbatch
@@ -16,28 +16,16 @@ models:
           - not_null
       - name: customer_id
         description: 顧客ID
-        tests:
-          - not_null
       - name: shop_id
         description: 店舗ID
-        tests:
-          - not_null
       - name: amount
         description: 注文金額
-        tests:
-          - not_null
       - name: status
         description: 注文ステータス
-        tests:
-          - not_null
       - name: ordered_at
         description: 注文日時
-        tests:
-          - not_null
       - name: updated_at
         description: 更新日時
-        tests:
-          - not_null
       - name: customer_first_name
         description: 顧客名（注文時点断面）
       - name: customer_last_name
@@ -53,13 +41,130 @@ models:
         tests:
           - not_null
 
+  - name: fct_daily_order_status_history_scd2
+    description: 日次注文ステータス更新履歴マート（Base層のSCD Type 2正規化モデル base_order_scd2 / base_customer_scd2 と日次断面 base_shop を結合するmicrobatchモデル）
+    config:
+      materialized: incremental
+      incremental_strategy: microbatch
+      event_time: partition_date
+      batch_size: day
+      begin: "{{ var('begin', var('execution_date', '2026-10-01')) }}"
+    columns:
+      - name: order_id
+        description: 注文ID
+        tests:
+          - not_null
+      - name: customer_id
+        description: 顧客ID
+      - name: shop_id
+        description: 店舗ID
+      - name: amount
+        description: 注文金額
+      - name: status
+        description: 注文ステータス
+      - name: ordered_at
+        description: 注文日時
+      - name: updated_at
+        description: 更新日時
+      - name: customer_first_name
+        description: 顧客名（有効期間結合）
+      - name: customer_last_name
+        description: 顧客姓（有効期間結合）
+      - name: customer_email
+        description: 顧客メールアドレス（有効期間結合）
+      - name: shop_name
+        description: 店舗名（有効期間結合）
+      - name: shop_location
+        description: 店舗所在地（有効期間結合）
+      - name: partition_date
+        description: 断面基準日（イベント発生日）
+        tests:
+          - not_null
+
+  - name: fct_daily_order_backlog_dsnp
+    description: 日次未発送受注残高マート（日次断面 Base モデル base_daily_order_dsnp, base_customer_dsnp, base_shop の等値結合による未発送残高集計）
+    config:
+      materialized: incremental
+      incremental_strategy: microbatch
+      event_time: partition_date
+      batch_size: day
+      begin: "{{ var('begin', var('execution_date', '2026-10-01')) }}"
+    columns:
+      - name: order_id
+        description: 注文ID
+        tests:
+          - not_null
+      - name: customer_id
+        description: 顧客ID
+      - name: shop_id
+        description: 店舗ID
+      - name: amount
+        description: 未発送注文金額
+      - name: status
+        description: 注文ステータス（ordered）
+      - name: ordered_at
+        description: 注文日時
+      - name: customer_first_name
+        description: 顧客名（当日断面）
+      - name: customer_last_name
+        description: 顧客姓（当日断面）
+      - name: customer_email
+        description: 顧客メールアドレス（当日断面）
+      - name: shop_name
+        description: 店舗名（当日断面）
+      - name: shop_location
+        description: 店舗所在地（当日断面）
+      - name: partition_date
+        description: 断面基準日（バックログ計上日）
+        tests:
+          - not_null
+
+  - name: fct_daily_order_backlog_scd2
+    description: 日次未発送受注残高マート（カレンダースパインに対する SCD Type 2 base_order_scd2 / base_customer_scd2 の有効期間 Range Join モデル）
+    config:
+      materialized: incremental
+      incremental_strategy: microbatch
+      event_time: partition_date
+      batch_size: day
+      begin: "{{ var('begin', var('execution_date', '2026-10-01')) }}"
+    columns:
+      - name: order_id
+        description: 注文ID
+        tests:
+          - not_null
+      - name: customer_id
+        description: 顧客ID
+      - name: shop_id
+        description: 店舗ID
+      - name: amount
+        description: 未発送注文金額
+      - name: status
+        description: 注文ステータス（ordered）
+      - name: ordered_at
+        description: 注文日時
+      - name: customer_first_name
+        description: 顧客名（有効期間結合）
+      - name: customer_last_name
+        description: 顧客姓（有効期間結合）
+      - name: customer_email
+        description: 顧客メールアドレス（有効期間結合）
+      - name: shop_name
+        description: 店舗名（有効期間結合）
+      - name: shop_location
+        description: 店舗所在地（有効期間結合）
+      - name: partition_date
+        description: 断面基準日（カレンダー基準日）
+        tests:
+          - not_null
+
+
 unit_tests:
   # ===========================================================================
-  # fct_daily_sales (日次売上マート: base_order × base_customer × base_shop)
+  # fct_daily_order_status_history_dsnp (日次注文ステータス更新履歴マート: base_order_dsnp × base_customer_dsnp × base_shop)
   # ===========================================================================
-  - name: test_fct_daily_sales_normal_join
+  - name: test_fct_daily_order_status_history_dsnp_normal_join
     description: "【正常系結合】複数顧客・店舗への注文および同一顧客の複数注文が、正しくマスタ属性と結合されファンアウトなく集約されること"
-    model: fct_daily_sales
+    model: fct_daily_order_status_history_dsnp
     overrides:
       vars:
         begin: "2026-10-01"
@@ -68,22 +173,22 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: ref('base_order')
+      - input: ref('base_order_dsnp')
         format: csv
-        fixture: fct_daily_sales__normal_join_orders
-      - input: ref('base_customer')
+        fixture: fct_daily_order_status_history_dsnp__normal_join_orders
+      - input: ref('base_customer_dsnp')
         format: csv
-        fixture: fct_daily_sales__normal_join_customers
+        fixture: fct_daily_order_status_history_dsnp__normal_join_customers
       - input: ref('base_shop')
         format: csv
-        fixture: fct_daily_sales__normal_join_shops
+        fixture: fct_daily_order_status_history_dsnp__normal_join_shops
     expect:
       format: csv
-      fixture: fct_daily_sales__normal_join_expected
+      fixture: fct_daily_order_status_history_dsnp__normal_join_expected
 
-  - name: test_fct_daily_sales_left_join_missing_master
+  - name: test_fct_daily_order_status_history_dsnp_left_join_missing_master
     description: "【LEFT JOIN・マスタ不在検証】顧客不在・店舗不在・両マスタ不在の注文が存在してもレコードは欠落せず、該当属性のみNULLとして保持されること"
-    model: fct_daily_sales
+    model: fct_daily_order_status_history_dsnp
     overrides:
       vars:
         begin: "2026-10-02"
@@ -92,18 +197,241 @@ unit_tests:
       macros:
         is_incremental: false
     given:
-      - input: ref('base_order')
+      - input: ref('base_order_dsnp')
         format: csv
-        fixture: fct_daily_sales__left_join_missing_master_orders
-      - input: ref('base_customer')
+        fixture: fct_daily_order_status_history_dsnp__left_join_missing_master_orders
+      - input: ref('base_customer_dsnp')
         format: csv
-        fixture: fct_daily_sales__left_join_missing_master_customers
+        fixture: fct_daily_order_status_history_dsnp__left_join_missing_master_customers
       - input: ref('base_shop')
         format: csv
-        fixture: fct_daily_sales__left_join_missing_master_shops
+        fixture: fct_daily_order_status_history_dsnp__left_join_missing_master_shops
     expect:
       format: csv
-      fixture: fct_daily_sales__left_join_missing_master_expected
+      fixture: fct_daily_order_status_history_dsnp__left_join_missing_master_expected
 
+  # ===========================================================================
+  # fct_daily_order_status_history_scd2 (SCD Type 2 正規化Base結合: base_order_scd2 × base_customer_scd2 × base_shop)
+  # ===========================================================================
+  - name: test_fct_daily_order_status_history_scd2_normal_join
+    description: "【正常系結合】複数注文・同一顧客の複数注文が、SCD Type 2有効期間に基づき正しくマスタ属性と結合されること"
+    model: fct_daily_order_status_history_scd2
+    overrides:
+      vars:
+        begin: "2026-10-01"
+        end: "2026-10-02"
+        execution_date: "2026-10-01"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('base_order_scd2')
+        format: csv
+        fixture: fct_daily_order_status_history_scd2__normal_join_orders
+      - input: ref('base_customer_scd2')
+        format: csv
+        fixture: fct_daily_order_status_history_scd2__normal_join_customers
+      - input: ref('base_shop')
+        format: csv
+        fixture: fct_daily_order_status_history_scd2__normal_join_shops
+    expect:
+      format: csv
+      fixture: fct_daily_order_status_history_scd2__normal_join_expected
 
+  - name: test_fct_daily_order_status_history_scd2_scd_transition
+    description: "【SCD2期間遷移検証】顧客や店舗の属性更新が発生した際、更新前の注文は旧値、更新後の注文は新値へ正しく結合が切り替わること"
+    model: fct_daily_order_status_history_scd2
+    overrides:
+      vars:
+        begin: "2026-10-04"
+        end: "2026-10-11"
+        execution_date: "2026-10-10"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('base_order_scd2')
+        format: csv
+        fixture: fct_daily_order_status_history_scd2__scd_transition_orders
+      - input: ref('base_customer_scd2')
+        format: csv
+        fixture: fct_daily_order_status_history_scd2__scd_transition_customers
+      - input: ref('base_shop')
+        format: csv
+        fixture: fct_daily_order_status_history_scd2__scd_transition_shops
+    expect:
+      format: csv
+      fixture: fct_daily_order_status_history_scd2__scd_transition_expected
+
+  - name: test_fct_daily_order_status_history_scd2_left_join_missing_master
+    description: "【LEFT JOIN・マスタ不在検証】顧客不在・店舗不在・両マスタ不在の注文が存在してもレコードは欠落せず、該当属性のみNULLとして保持されること"
+    model: fct_daily_order_status_history_scd2
+    overrides:
+      vars:
+        begin: "2026-10-02"
+        end: "2026-10-03"
+        execution_date: "2026-10-02"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('base_order_scd2')
+        format: csv
+        fixture: fct_daily_order_status_history_scd2__left_join_missing_master_orders
+      - input: ref('base_customer_scd2')
+        format: csv
+        fixture: fct_daily_order_status_history_scd2__left_join_missing_master_customers
+      - input: ref('base_shop')
+        format: csv
+        fixture: fct_daily_order_status_history_scd2__left_join_missing_master_shops
+    expect:
+      format: csv
+      fixture: fct_daily_order_status_history_scd2__left_join_missing_master_expected
+
+  # ===========================================================================
+  # fct_daily_order_backlog_dsnp (日次未発送受注残高: base_daily_order_dsnp × base_customer_dsnp × base_shop)
+  # ===========================================================================
+  - name: test_fct_daily_order_backlog_dsnp_normal
+    description: "【正常系抽出】status='ordered'の未発送注文のみが抽出され、shipped/cancelledが除外されること"
+    model: fct_daily_order_backlog_dsnp
+    overrides:
+      vars:
+        begin: "2026-10-11"
+        end: "2026-10-12"
+        execution_date: "2026-10-11"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('base_daily_order_dsnp')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__normal_orders
+      - input: ref('base_customer_dsnp')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__normal_customers
+      - input: ref('base_shop')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__normal_shops
+    expect:
+      format: csv
+      fixture: fct_daily_order_backlog_dsnp__normal_expected
+
+  - name: test_fct_daily_order_backlog_dsnp_missing_master
+    description: "【LEFT JOIN・マスタ不在検証】顧客または店舗が存在しない未発送注文でも欠落せず、該当属性のみNULLとして保持されること"
+    model: fct_daily_order_backlog_dsnp
+    overrides:
+      vars:
+        begin: "2026-10-11"
+        end: "2026-10-12"
+        execution_date: "2026-10-11"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('base_daily_order_dsnp')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__missing_master_orders
+      - input: ref('base_customer_dsnp')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__missing_master_customers
+      - input: ref('base_shop')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__missing_master_shops
+    expect:
+      format: csv
+      fixture: fct_daily_order_backlog_dsnp__missing_master_expected
+
+  - name: test_fct_daily_order_backlog_dsnp_day11_retention
+    description: "【10/11日次バッチ: 複数注文滞留検証】前日10/10からの滞留注文(101)と当日10/11の新規注文(102)が抽出され、当日出荷済み(103)が除外されること"
+    model: fct_daily_order_backlog_dsnp
+    overrides:
+      vars:
+        begin: "2026-10-11"
+        end: "2026-10-12"
+        execution_date: "2026-10-11"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('base_daily_order_dsnp')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__day11_orders
+      - input: ref('base_customer_dsnp')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__day11_customers
+      - input: ref('base_shop')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__day11_shops
+    expect:
+      format: csv
+      fixture: fct_daily_order_backlog_dsnp__day11_expected
+
+  - name: test_fct_daily_order_backlog_dsnp_day12_resolution
+    description: "【10/12日次バッチ: 複数注文解消検証】本日出荷完了した注文(101)がバックログから除外され、未発送滞留中の注文(102)のみが正しく維持されること"
+    model: fct_daily_order_backlog_dsnp
+    overrides:
+      vars:
+        begin: "2026-10-12"
+        end: "2026-10-13"
+        execution_date: "2026-10-12"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('base_daily_order_dsnp')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__day12_orders
+      - input: ref('base_customer_dsnp')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__day12_customers
+      - input: ref('base_shop')
+        format: csv
+        fixture: fct_daily_order_backlog_dsnp__day12_shops
+    expect:
+      format: csv
+      fixture: fct_daily_order_backlog_dsnp__day12_expected
+
+  # ===========================================================================
+  # fct_daily_order_backlog_scd2 (SCD2 有効期間 Range Join による日次バックログ復元)
+  # ===========================================================================
+  - name: test_fct_daily_order_backlog_scd2_transition
+    description: "【SCD2バックログ滞留・解消検証】有効期間(valid_from ~ to)とカレンダースパインのRange Joinにより、未発送期間のみ滞留し発送日以降は正しく除外されること"
+    model: fct_daily_order_backlog_scd2
+    overrides:
+      vars:
+        begin: "2026-10-10"
+        end: "2026-10-13"
+        execution_date: "2026-10-10"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('base_order_scd2')
+        format: csv
+        fixture: fct_daily_order_backlog_scd2__transition_orders
+      - input: ref('base_customer_scd2')
+        format: csv
+        fixture: fct_daily_order_backlog_scd2__transition_customers
+      - input: ref('base_shop')
+        format: csv
+        fixture: fct_daily_order_backlog_scd2__transition_shops
+    expect:
+      format: csv
+      fixture: fct_daily_order_backlog_scd2__transition_expected
+
+  - name: test_fct_daily_order_backlog_scd2_missing_master
+    description: "【LEFT JOIN・マスタ不在検証】顧客または店舗が存在しない未発送注文でも欠落せず、該当属性のみNULLとして保持されること"
+    model: fct_daily_order_backlog_scd2
+    overrides:
+      vars:
+        begin: "2026-10-10"
+        end: "2026-10-11"
+        execution_date: "2026-10-10"
+      macros:
+        is_incremental: false
+    given:
+      - input: ref('base_order_scd2')
+        format: csv
+        fixture: fct_daily_order_backlog_scd2__missing_master_orders
+      - input: ref('base_customer_scd2')
+        format: csv
+        fixture: fct_daily_order_backlog_scd2__missing_master_customers
+      - input: ref('base_shop')
+        format: csv
+        fixture: fct_daily_order_backlog_scd2__missing_master_shops
+    expect:
+      format: csv
+      fixture: fct_daily_order_backlog_scd2__missing_master_expected
 

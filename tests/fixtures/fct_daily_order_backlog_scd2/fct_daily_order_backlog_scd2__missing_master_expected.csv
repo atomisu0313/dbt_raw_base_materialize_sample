@@ -1,0 +1,4 @@
+order_id,customer_id,shop_id,amount,status,ordered_at,customer_first_name,customer_last_name,customer_email,shop_name,shop_location,partition_date
+201,999,1,1000,ordered,2026-10-10 10:00:00,null,null,null,Shibuya Main,Tokyo,2026-10-10
+202,1,999,2000,ordered,2026-10-10 11:00:00,Alice,Smith,alice@example.com,null,null,2026-10-10
+203,999,999,3000,ordered,2026-10-10 12:00:00,null,null,null,null,null,2026-10-10

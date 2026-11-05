@@ -1,0 +1,5 @@
+order_id,customer_id,shop_id,amount,status,ordered_at,updated_at,customer_first_name,customer_last_name,customer_email,shop_name,shop_location,partition_date
+2001,999,10,1000,ordered,2026-10-02 10:00:00,2026-10-02 10:00:00,null,null,null,Tokyo Ginza,Tokyo,2026-10-02
+2002,1,999,2000,ordered,2026-10-02 11:00:00,2026-10-02 11:00:00,Taro,Yamada,taro@example.com,null,null,2026-10-02
+2003,999,999,3000,ordered,2026-10-02 12:00:00,2026-10-02 12:00:00,null,null,null,null,null,2026-10-02
+

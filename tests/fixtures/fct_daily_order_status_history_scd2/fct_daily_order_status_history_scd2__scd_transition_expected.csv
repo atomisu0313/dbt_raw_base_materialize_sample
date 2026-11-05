@@ -1,0 +1,4 @@
+order_id,customer_id,shop_id,amount,status,ordered_at,updated_at,customer_first_name,customer_last_name,customer_email,shop_name,shop_location,partition_date
+101,1,10,1500,ordered,2026-10-04 10:00:00,2026-10-04 10:00:00,Michaela,APQ.,test1@cmail.com,Tokyo Main,Tokyo,2026-10-04
+102,1,10,2000,ordered,2026-10-10 10:00:00,2026-10-10 10:00:00,Michaela_New,APQ.,test1@cmail.com,Tokyo Ginza,Tokyo,2026-10-10
+
